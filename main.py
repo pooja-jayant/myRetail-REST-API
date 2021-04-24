@@ -57,8 +57,10 @@ class MyRetailApi(Resource):
             product = MyRetailModel.objects.get(_id=product_id)
             if not product:
                 abort(404, message=f"No product with id {product_id}")
-            product_desc = ProductDescription.objects.get(_id=product_id)
-            product.current_price.product_desc = product_desc
+            result = ProductDescription.objects.with_id(object_id=product_id)
+            if result:
+                product_desc = ProductDescription.objects.get(_id=product_id)
+                product.current_price.product_desc = product_desc
             return product, 200
         except Exception:
             return {}, 404
@@ -71,9 +73,11 @@ class MyRetailApi(Resource):
             product = MyRetailModel(_id=product_id,
                                     current_price=data['current_price'],
                                     ).save()
-            product_desc = ProductDescription.objects.get(_id=product_id)
-            if product_desc:
-                product.current_price.product_desc = product_desc
+            result = ProductDescription.objects.with_id(object_id=product_id)
+            if result:
+                product_desc = ProductDescription.objects.get(_id=product_id)
+                if product_desc:
+                    product.current_price.product_desc = product_desc
             return product, 201
         except JWTError:
             return {}, 422
@@ -92,9 +96,11 @@ class MyRetailApi(Resource):
                     MyRetailModel.objects.get(_id=product_id).update(
                         set__current_price__currency_code=data["current_price"]["currency_code"])
             product = MyRetailModel.objects.get(_id=product_id)
-            product_desc = ProductDescription.objects.get(_id=product_id)
-            if product_desc:
-                product.current_price.product_desc = product_desc
+            result = ProductDescription.objects.with_id(object_id=product_id)
+            if result:
+                product_desc = ProductDescription.objects.get(_id=product_id)
+                if product_desc:
+                    product.current_price.product_desc = product_desc
             return product, 204
         except JWTError as jwt_error:
             return {"error": jwt_error}, 401
@@ -110,7 +116,7 @@ class MyRetailApi(Resource):
             return {"msg": "deleted!!"}, 204
 
         except JWTError as jwt_error:
-            return {"error": jwt_error }, 401
+            return {"error": jwt_error}, 401
 
         except Exception as e:
             return {"error": e}, 500
