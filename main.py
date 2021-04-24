@@ -2,9 +2,13 @@ from flask import Flask, request
 from flask_mongoengine import MongoEngine
 from flask_restful import Api, Resource, abort, fields, marshal_with
 from mongoengine import EmbeddedDocument, StringField, EmbeddedDocumentField, IntField, ReferenceField
+from flask_jwt import JWT, jwt_required, JWTError
+from security.security import authenticate, identity
 
 app = Flask(__name__)
 api = Api(app)
+app.secret_key = 'secret'
+jwt = JWT(app, authenticate, identity)
 app.config["MONGODB_SETTINGS"] = {
     'db': 'myRetaildb',
     'host': 'localhost',
@@ -49,39 +53,67 @@ class MyRetailApi(Resource):
 
     @marshal_with(resource_fields)
     def get(self, product_id):
-        product = MyRetailModel.objects.get(_id=product_id)
-        if not product:
-            abort(404, message=f"No product with id {product_id}")
-        product_desc = ProductDescription.objects.get(_id=product_id)
-        product.current_price.product_desc = product_desc
-        return product, 200
+        try:
+            product = MyRetailModel.objects.get(_id=product_id)
+            if not product:
+                abort(404, message=f"No product with id {product_id}")
+            product_desc = ProductDescription.objects.get(_id=product_id)
+            product.current_price.product_desc = product_desc
+            return product, 200
+        except Exception:
+            return {}, 404
 
     @marshal_with(resource_fields)
+    @jwt_required()
     def post(self, product_id):
-        data = request.get_json(force=True)
-        product = MyRetailModel(_id=product_id,
-                                current_price=data['current_price'],
-                                ).save()
-        return product, 201
+        try:
+            data = request.get_json(force=True)
+            product = MyRetailModel(_id=product_id,
+                                    current_price=data['current_price'],
+                                    ).save()
+            product_desc = ProductDescription.objects.get(_id=product_id)
+            if product_desc:
+                product.current_price.product_desc = product_desc
+            return product, 201
+        except JWTError:
+            return {}, 422
 
     @marshal_with(resource_fields)
+    @jwt_required()
     def patch(self, product_id):
-        data = request.get_json(force=True)
-        if "current_price" in data:
-            if "value" in data["current_price"]:
-                MyRetailModel.objects(_id=product_id).update(set__current_price__value=data["current_price"]["value"])
+        try:
+            data = request.get_json(force=True)
+            if "current_price" in data:
+                if "value" in data["current_price"]:
+                    MyRetailModel.objects.get(_id=product_id).update(
+                        set__current_price__value=data["current_price"]["value"])
 
-            if "currency_code" in data["current_price"]:
-                MyRetailModel.objects(_id=product_id).update(set__current_price__currency_code=data["current_price"]["currency_code"])
+                if "currency_code" in data["current_price"]:
+                    MyRetailModel.objects.get(_id=product_id).update(
+                        set__current_price__currency_code=data["current_price"]["currency_code"])
+            product = MyRetailModel.objects.get(_id=product_id)
+            product_desc = ProductDescription.objects.get(_id=product_id)
+            if product_desc:
+                product.current_price.product_desc = product_desc
+            return product, 204
+        except JWTError as jwt_error:
+            return {"error": jwt_error}, 401
+        except Exception:
+            return {"error": "Failed to Update!!"}, 500
 
-        return MyRetailModel.objects.get(_id=product_id), 204
-
-    @marshal_with(resource_fields)
+    @jwt_required()
     def delete(self, product_id):
-        if not MyRetailModel.objects.get(_id=product_id):
-            abort(404, message=f"No product with id {product_id}")
-        MyRetailModel.objects.get(_id=product_id).delete()
-        return {}, 204
+        try:
+            if not MyRetailModel.objects.get(_id=product_id):
+                abort(404, message=f"No product with id {product_id}")
+            MyRetailModel.objects.get(_id=product_id).delete()
+            return {"msg": "deleted!!"}, 204
+
+        except JWTError as jwt_error:
+            return {"error": jwt_error }, 401
+
+        except Exception as e:
+            return {"error": e}, 500
 
 
 api.add_resource(MyRetailApi, '/products/<int:product_id>')
