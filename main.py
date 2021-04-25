@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, make_response
 from flask_mongoengine import MongoEngine
 from flask_restful import Api, Resource, abort, fields, marshal_with
 from mongoengine import EmbeddedDocument, StringField, EmbeddedDocumentField, IntField, ReferenceField
@@ -30,6 +30,10 @@ price_fields = {
 resource_fields = {
     "_id": fields.Integer,
     "current_price": fields.Nested(price_fields)
+}
+
+multiple_products = {
+    "products": fields.List(fields.Nested(resource_fields))
 }
 
 
@@ -122,7 +126,37 @@ class MyRetailApi(Resource):
             return {"error": e}, 500
 
 
+class GetAllProducts(Resource):
+
+    @marshal_with(multiple_products)
+    def get(self):
+        try:
+            products = MyRetailModel.objects.filter()
+            updated_products = []
+            for product in products:
+                result = ProductDescription.objects.with_id(object_id=product._id)
+                if result:
+                    product_desc = ProductDescription.objects.get(_id=product._id)
+                    product.current_price.product_desc = product_desc
+                    updated_products.append(product)
+                else:
+                    updated_products.append(product)
+            return {"products": updated_products}, 200
+        except Exception:
+            return {}, 404
+
+
+class Home(Resource):
+
+    def get(self):
+        headers = {'Content-Type': 'text/html'}
+        return make_response("<h1>MyRetail API</h1>", headers)
+
+
+api.add_resource(Home, '/')
+api.add_resource(GetAllProducts, '/products/')
 api.add_resource(MyRetailApi, '/products/<int:product_id>')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
