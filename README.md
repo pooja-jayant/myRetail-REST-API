@@ -19,7 +19,7 @@ To install the dependencies, execute the following steps,
     ```
 3. Once successfully installed, run
     ```bash
-   python3 main.py 
+   python3 src/main.py 
    ```
    
 4. Once you ensure the server is running, go to any desired browser and type the url ` http://127.0.0.1:5000/`
@@ -38,6 +38,12 @@ myRetail API service is secured with JWT token. To authenticate,follow the steps
 * To post a new product, goto `http://127.0.0.1:5000/products<product_id>` and include form data to be uploaded. Make sure you're authenticated. To authenticate to go to section [How to Authenticate](#how-to-authenticate)
 * To update an existing product, got to `http://127.0.0.1:5000/products<product_id>` and include form data to be updated.
 * To delete a product, go to `http://127.0.0.1:5000/products<product_id>` and given `<product_id>` will bw deleted
+
+## How to run Tests?
+To run unit test cases,
+```bash
+python3 unit_test/unit_test_script.py
+```
 
 ### Note
 Steps written are best suited for Linux platform.
