@@ -19,7 +19,6 @@ db = MongoEngine()
 db.init_app(app)
 
 product_description = {
-    "_id": fields.Integer,
     "product_description": fields.String
 }
 price_fields = {
@@ -114,8 +113,8 @@ class MyRetailApi(Resource):
     @jwt_required()
     def delete(self, product_id):
         try:
-            if not MyRetailModel.objects.get(_id=product_id):
-                abort(404, message=f"No product with id {product_id}")
+            if not MyRetailModel.objects.with_id(object_id=product_id):
+                return {"error": f"product with id {product_id} does not exist"}, 404
             MyRetailModel.objects.get(_id=product_id).delete()
             return {"msg": "deleted!!"}, 204
 
