@@ -6,6 +6,7 @@ from user import User
 users = [
     User(1, 'Pooja', '@123'),
     User(2, 'Test', '@321'),
+    User(3, 'Test-2', '@123'),
 ]
 
 #check JWT documentation for python
